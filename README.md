@@ -1,9 +1,10 @@
 # Word Count in pyspark
 
-Read compelete Bible.txt file and write pyspark transformations to get following outputs 
+Read compelete Bible.txt file and write pyspark transformations to get following outputs
+
+Input file: ascii_bible.txt
 
 Output-1: top-5 words:
-
 Top-Word-1 <frequency-as-integer-N1>
 Top-Word-2 <frequency-as-integer-N2>
 Top-Word-3 <frequency-as-integer-N3>
