@@ -1,0 +1,93 @@
+Sorted Word Count MapReduce Program in PySpark
+----------------------------------------------
+Read Bible.txt file and write pyspark transformations to get following outputs 
+Output-1: top-5 words:
+
+Top-Word-1 <frequency-as-integer-N1>
+Top-Word-2 <frequency-as-integer-N2>
+Top-Word-3 <frequency-as-integer-N3>
+Top-Word-4 <frequency-as-integer-N4>
+Top-Word-5 <frequency-as-integer-N5>
+
+where N1 > N2 > N3 > N4 > N5
+
+Output-2:
+<any-unique-word-with-4-characters> <frequency>
+<any-unique-word-with-5-characters> <frequency>
+<any-unique-word-with-6-characters> <frequency>
+<any-unique-word-with-7-characters> <frequency>
+<any-unique-word-with-8-characters> <frequency>
+<any-unique-word-with-9-characters> <frequency>
+
+
+The following additional requirements needs to be implemented:
+1. words are separated by any number of spaces or tabs
+2. if any word has any special character (other than  a-z and A-Z), then that word is filtered out (dropped): with one exception: if a word ends with
+       {".",  ";",  ",",  "?",  ":"} then drop that special character, and then keep/use it as a proper word.
+3. Therefore a valid word can have only {a-z, A-Z}
+4. all words has to be converted to lowercase
+
+----------------------------------------------
+Code:
+----------------------------------------------
+
+#Reading the Bible
+data = spark.sparkContext.textFile('ascii_bible.txt')
+
+*************
+Data Cleaning
+*************
+# Converting to lower case and splitting the text based on space and by using flatmap, flattening the output 
+data_lower = data.flatMap(lambda a: a.lower().split())
+
+#using regular expression library to clean the file
+import re
+
+#\W+ matches one or more word characters. This will take care of punctuations at the end.
+data_lower2 = data_lower.flatMap(lambda a: re.split('\W+',a))
+
+#Removing digits
+data_lower3 = data_lower2.flatMap(lambda a: re.split('\d+',a))
+
+#After all the splits , there are '' i.e. words with zero length.Removing all such the words i.e. ''. 
+data_clean = data_lower3.filter(lambda x: len(x)!=0)
+
+#mapping each word ('word',(1,length_of_the_word))
+data_clean_map = data_clean.map(lambda a: (a,(1,len(a))))
+
+#reducing by key ('word',(sum,length_of_word))
+reduce_data = data_clean_map.reduceByKey(lambda x,y:(x[0]+y[0],x[1]))
+
+#filtering the records with less than 4 characters. Output will be of same format ('word',(sum,length_of_word))
+data_filter = reduce_data.filter(lambda x:  x[1][1]>3)
+**************************************************************************
+Output 1
+#input is ('word',(sum,length_of_word)). Using mapValues to emit the sum of word occurance ('word')
+output1 = data_filter.mapValues(lambda a: a[0])
+output1_top5 = output1data_filter.top(5,key=lambda x:x[1])
+#printing only top 5 outputs
+output1_top5
+[('that', 12913), ('shall', 9838), ('unto', 8997), ('lord', 7964), ('they', 7376)]
+
+#Saving all the outputs (not just 5)
+output1.sortBy(lambda a: a[1],ascending=False).saveAsTextFile('Pratik_output1.txt')
+**************************************************************************
+Output 2
+# input --> ('word',(sum,length_of_word)); Output --> (length_of_word,1)
+out2_map = data_filter.map(lambda x: (x[1][1],1))
+
+#reducebykey to count the occurance of each lengths
+out2_reduce = out2_map.reduceByKey(lambda x,y: x+y)
+
+#sorting and emitting in the desired format
+output2 = out2_reduce.sortByKey().map(lambda x: ('any-unique-word-with-%d-characters'%x[0],x[1]))
+
+output2.collect()
+[('any-unique-word-with-4-characters', 1093), ('any-unique-word-with-5-characters', 1720), ('any-unique-word-with-6-characters', 2174), 
+('any-unique-word-with-7-characters', 2205), ('any-unique-word-with-8-characters', 1788), ('any-unique-word-with-9-characters', 1383), 
+('any-unique-word-with-10-characters', 923), ('any-unique-word-with-11-characters', 503), ('any-unique-word-with-12-characters', 241), 
+('any-unique-word-with-13-characters', 107), ('any-unique-word-with-14-characters', 42), ('any-unique-word-with-15-characters', 23), 
+('any-unique-word-with-16-characters', 8), ('any-unique-word-with-17-characters', 1), ('any-unique-word-with-18-characters', 1)]
+
+output2.saveAsTextFile('Pratik_output2.txt')
+**************************************************************************
