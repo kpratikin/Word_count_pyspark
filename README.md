@@ -1,6 +1,10 @@
 # Word Count in pyspark
 
-Read compelete Bible.txt file and write pyspark transformations to get following outputs
+Objective: 
+To read compelete Bible.txt book and retrieve 
+1. top 5 words used in the book
+2. Number of unique words with 4 characters, 5 characters, 6 characters,7 characters and 8 characters.
+
 
 Input file: ascii_bible.txt
 
